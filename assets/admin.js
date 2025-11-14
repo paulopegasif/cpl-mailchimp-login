@@ -1,5 +1,5 @@
-
 jQuery(function($){
+    // Test API Key
     $('#cpl-test-key').on('click', function(){
         let key = $('#api_key').val();
         $('#cpl-test-result').text('Testando...');
@@ -16,12 +16,13 @@ jQuery(function($){
         });
     });
 
+    // Fetch audiences
     $('#cpl-fetch-audiences').on('click', function(){
         let key = $('#api_key').val();
         let $select = $('#cpl-audience-select');
         let current = $select.data('current') || '';
 
-        $select.html('<option>Carregando...</option>');
+        $select.html('<option value=\"\">Carregando...</option>');
 
         $.post(CPLMC.ajax, {
             action:'cpl_mc_fetch_audiences',
@@ -29,15 +30,16 @@ jQuery(function($){
             _ajax_nonce:CPLMC.nonce
         }, function(res){
             if(res.success){
-                let html = '<option value="">-- Selecione --</option>';
+                let html = '<option value=\"\">-- Selecione --</option>';
                 res.data.forEach(list=>{
                     let selected = (list.id === current) ? ' selected' : '';
-                    html += `<option value="${list.id}"${selected}>${list.name}</option>`;
+                    html += '<option value=\"' + list.id + '\"' + selected + '>' + list.name + '</option>';
                 });
 
                 $select.html(html);
             } else {
                 alert(res.data || 'Erro ao carregar Audiences.');
+                $select.html('<option value=\"\">-- Selecione --</option>');
             }
         });
     });
