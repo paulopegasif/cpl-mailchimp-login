@@ -83,7 +83,17 @@
   // Handler do formulário de login dentro do popup
   document.addEventListener('submit', function(e){
     var form = e.target;
-    if (!form || form.id !== 'cpl-login-form') return;
+    
+    // Verifica se é um form dentro do popup do Elementor
+    var isPopupForm = form && (
+      form.id === 'cpl-login-form' || 
+      form.closest('.elementor-popup-modal') ||
+      form.classList.contains('elementor-form')
+    );
+    
+    if (!isPopupForm) return;
+
+    console.log('[CPL] Formulário detectado, processando login...');
 
     // Bloqueia o Elementor de pegar o submit
     e.preventDefault();
@@ -92,16 +102,37 @@
       e.stopImmediatePropagation();
     }
 
-    var emailInput = form.querySelector('input[type="email"], input[name="email"]');
-    var errorEl = document.getElementById('cpl-login-error');
+    // Busca o campo de email de várias formas possíveis
+    var emailInput = form.querySelector('input[type="email"]') || 
+                     form.querySelector('input[name="email"]') ||
+                     form.querySelector('input[name="form_fields[email]"]') ||
+                     form.querySelector('[name*="email"]');
+    
+    var errorEl = document.getElementById('cpl-login-error') || 
+                  form.querySelector('.cpl-error-message') ||
+                  form.querySelector('.elementor-message');
 
-    if (errorEl) errorEl.textContent = '';
+    if (errorEl) {
+      errorEl.textContent = '';
+      errorEl.style.display = 'none';
+    }
 
     var email = emailInput && emailInput.value ? emailInput.value.trim() : '';
+    
+    console.log('[CPL] Email encontrado:', email ? 'Sim' : 'Não', '- Valor:', email);
+    
     if (!email) {
-      if (errorEl) errorEl.textContent = 'Digite o e-mail que você usou na inscrição.';
+      console.warn('[CPL] Email vazio ou campo não encontrado');
+      if (errorEl) {
+        errorEl.textContent = 'Digite o e-mail que você usou na inscrição.';
+        errorEl.style.display = 'block';
+      } else {
+        alert('Digite o e-mail que você usou na inscrição.');
+      }
       return;
     }
+
+    console.log('[CPL] Enviando requisição para:', CFG.restUrl);
 
     fetch(CFG.restUrl, {
       method: 'POST',
@@ -109,19 +140,36 @@
       body: JSON.stringify({ email: email })
     })
     .then(function(res){
+      console.log('[CPL] Resposta recebida - Status:', res.status);
       return res.json().then(function(data){
         return { ok: res.ok, data: data };
       });
     })
     .then(function(res){
+      console.log('[CPL] Dados da resposta:', res.data);
       if (res.ok && res.data && res.data.ok) {
+        console.log('[CPL] ✅ Login aprovado! Liberando acesso...');
         unlockGate();
       } else {
-        if (errorEl) errorEl.textContent = (res.data && res.data.error) || 'Não foi possível validar seu e-mail.';
+        var errorMsg = (res.data && res.data.error) || 'Não foi possível validar seu e-mail.';
+        console.warn('[CPL] ❌ Login negado:', errorMsg);
+        if (errorEl) {
+          errorEl.textContent = errorMsg;
+          errorEl.style.display = 'block';
+        } else {
+          alert(errorMsg);
+        }
       }
     })
-    .catch(function(){
-      if (errorEl) errorEl.textContent = 'Falha de conexão. Tente novamente em instantes.';
+    .catch(function(err){
+      console.error('[CPL] Erro na requisição:', err);
+      var errorMsg = 'Falha de conexão. Tente novamente em instantes.';
+      if (errorEl) {
+        errorEl.textContent = errorMsg;
+        errorEl.style.display = 'block';
+      } else {
+        alert(errorMsg);
+      }
     });
   });
 
