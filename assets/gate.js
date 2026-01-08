@@ -34,13 +34,42 @@
 
   function closePopup() {
     var popupId = CFG.popupId;
-    if (!popupId) return;
-
+    
+    console.log('[CPL] Tentando fechar popup ID:', popupId);
+    
+    // Método 1: API do Elementor Pro
     if (window.elementorProFrontend && elementorProFrontend.modules && elementorProFrontend.modules.popup) {
       try {
         elementorProFrontend.modules.popup.closePopup({ id: popupId });
-      } catch (e) {}
+        console.log('[CPL] Popup fechado via API do Elementor');
+      } catch (e) {
+        console.warn('[CPL] Erro ao fechar via API:', e);
+      }
     }
+    
+    // Método 2: Fechar via botão de fechar (fallback)
+    setTimeout(function() {
+      var closeBtn = document.querySelector('.elementor-popup-modal .dialog-close-button') ||
+                     document.querySelector('.elementor-popup-modal .eicon-close') ||
+                     document.querySelector('[data-elementor-type="popup"] .dialog-close-button');
+      
+      if (closeBtn) {
+        closeBtn.click();
+        console.log('[CPL] Popup fechado via botão de fechar');
+      }
+      
+      // Método 3: Remover classes e elementos manualmente (último recurso)
+      var popupModal = document.querySelector('.elementor-popup-modal');
+      if (popupModal && popupModal.parentElement) {
+        popupModal.parentElement.style.display = 'none';
+        console.log('[CPL] Popup ocultado manualmente');
+      }
+      
+      // Remove classes do body que o Elementor adiciona
+      document.body.classList.remove('elementor-popup-modal-' + popupId);
+      document.documentElement.classList.remove('elementor-popup-modal-' + popupId);
+      
+    }, 100);
   }
 
   function lockGate() {
@@ -50,13 +79,19 @@
   }
 
   function unlockGate() {
+    console.log('[CPL] 🔓 Liberando acesso...');
+    
     var days = parseInt(CFG.cookieDays, 10);
     if (!days || days <= 0) days = 7;
     setCookie(COOKIE_NAME, '1', days);
 
     document.documentElement.classList.remove('cpl-gate-open');
     document.documentElement.classList.add('cpl-gate-unlocked');
+    document.body.classList.remove('elementor-popup-modal');
+    
     closePopup();
+    
+    console.log('[CPL] ✅ Acesso liberado com sucesso!');
   }
 
   // Bypass via parametro ?cpl_access=1 (ex.: link enviado no e-mail)
