@@ -37,20 +37,21 @@
     
     console.log('[CPL] Tentando fechar popup ID:', popupId);
     
-    // Método 1: API do Elementor Pro
-    if (window.elementorProFrontend && elementorProFrontend.modules && elementorProFrontend.modules.popup) {
-      try {
-        elementorProFrontend.modules.popup.closePopup({ id: popupId });
-        console.log('[CPL] Popup fechado via API do Elementor');
-      } catch (e) {
-        console.warn('[CPL] Erro ao fechar via API:', e);
-      }
-    }
-    
-    // Método 2: Fechar via botão de fechar (fallback)
+    // Primeiro, tira o focus do popup
     setTimeout(function() {
+      // Método 1: API do Elementor Pro
+      if (window.elementorProFrontend && elementorProFrontend.modules && elementorProFrontend.modules.popup) {
+        try {
+          elementorProFrontend.modules.popup.closePopup({ id: popupId });
+          console.log('[CPL] Popup fechado via API do Elementor');
+        } catch (e) {
+          console.warn('[CPL] Erro ao fechar via API:', e);
+        }
+      }
+      
+      // Método 2: Fechar via botão de fechar (fallback)
       var closeBtn = document.querySelector('.elementor-popup-modal .dialog-close-button') ||
-                     document.querySelector('.elementor-popup-modal .eicon-close') ||
+                     document.querySelector('.elementor-popup-modal button[aria-label*="Close"]') ||
                      document.querySelector('[data-elementor-type="popup"] .dialog-close-button');
       
       if (closeBtn) {
@@ -58,18 +59,34 @@
         console.log('[CPL] Popup fechado via botão de fechar');
       }
       
-      // Método 3: Remover classes e elementos manualmente (último recurso)
-      var popupModal = document.querySelector('.elementor-popup-modal');
-      if (popupModal && popupModal.parentElement) {
-        popupModal.parentElement.style.display = 'none';
-        console.log('[CPL] Popup ocultado manualmente');
-      }
+      // Método 3: Remover elementos manualmente (último recurso)
+      setTimeout(function() {
+        var popupContainer = document.querySelector('.elementor-popup-modal');
+        var popupWrapper = document.querySelector('.elementor-popup-modal-wrapper');
+        
+        if (popupContainer && popupContainer.parentElement) {
+          popupContainer.parentElement.style.display = 'none';
+          console.log('[CPL] Popup container ocultado');
+        }
+        
+        if (popupWrapper) {
+          popupWrapper.style.display = 'none';
+          console.log('[CPL] Popup wrapper ocultado');
+        }
+        
+        // Remove classes que bloqueiam scroll
+        var popupClasses = Array.from(document.body.classList).filter(function(cls) {
+          return cls.indexOf('elementor-popup') !== -1;
+        });
+        popupClasses.forEach(function(cls) {
+          document.body.classList.remove(cls);
+          document.documentElement.classList.remove(cls);
+          console.log('[CPL] Classe removida:', cls);
+        });
+        
+      }, 100);
       
-      // Remove classes do body que o Elementor adiciona
-      document.body.classList.remove('elementor-popup-modal-' + popupId);
-      document.documentElement.classList.remove('elementor-popup-modal-' + popupId);
-      
-    }, 100);
+    }, 50);
   }
 
   function lockGate() {
@@ -85,9 +102,19 @@
     if (!days || days <= 0) days = 7;
     setCookie(COOKIE_NAME, '1', days);
 
+    // Remove classe que bloqueia o scroll
     document.documentElement.classList.remove('cpl-gate-open');
-    document.documentElement.classList.add('cpl-gate-unlocked');
     document.body.classList.remove('elementor-popup-modal');
+    document.body.classList.remove('elementor-modal');
+    
+    // Força reflow para atualizar CSS
+    void document.documentElement.offsetHeight;
+    
+    // Adiciona classe de desbloqueio
+    document.documentElement.classList.add('cpl-gate-unlocked');
+    
+    // Força outro reflow
+    void document.documentElement.offsetHeight;
     
     closePopup();
     
