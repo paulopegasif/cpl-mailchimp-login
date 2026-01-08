@@ -6,33 +6,29 @@
         180deg, rgba(6,10,27,0.65) 0%, rgba(6,10,27,0.85) 60%, 
         rgba(6,10,27,0.92) 100%);
     backdrop-filter: blur(4px);
-    pointer-events: auto;
-    display: block !important;
 }
 
 /* Quando desbloqueado, some o overlay */
 html.cpl-gate-unlocked #cpl-gate-overlay {
     display: none !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
 }
 
 /* Bloqueia scroll quando o gate está ativo */
-html.cpl-gate-open,
-html.cpl-gate-open body {
+html.cpl-gate-open {
     overflow: hidden !important;
-    height: 100% !important;
+    height: 100vh !important;
 }
 
-/* Libera scroll quando desbloqueado */
-html.cpl-gate-unlocked,
-html.cpl-gate-unlocked body {
-    overflow: visible !important;
+html.cpl-gate-open body {
+    overflow: hidden !important;
+}
+
+/* Restaura comportamento normal quando desbloqueado */
+html.cpl-gate-unlocked {
+    overflow: auto !important;
     height: auto !important;
 }
 
-/* Garante que popups do Elementor sejam ocultados quando liberado */
-html.cpl-gate-unlocked .elementor-popup-modal {
-    display: none !important;
-    visibility: hidden !important;
+html.cpl-gate-unlocked body {
+    overflow: auto !important;
 }

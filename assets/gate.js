@@ -37,59 +37,51 @@
     
     console.log('[CPL] Tentando fechar popup ID:', popupId);
     
-    // Primeiro, tira o focus do popup
+    // Aguarda um pouco para garantir que o DOM está pronto
     setTimeout(function() {
-      // Método 1: API do Elementor Pro
+      // Método 1: Clicar no botão de fechar
+      var closeBtn = document.querySelector('.elementor-popup-modal .dialog-close-button');
+      if (!closeBtn) {
+        closeBtn = document.querySelector('[aria-label="Close"]');
+      }
+      
+      if (closeBtn) {
+        try {
+          closeBtn.click();
+          console.log('[CPL] Popup fechado via botão');
+        } catch (e) {
+          console.warn('[CPL] Erro ao clicar botão:', e);
+        }
+      }
+      
+      // Método 2: Usar API do Elementor se disponível
       if (window.elementorProFrontend && elementorProFrontend.modules && elementorProFrontend.modules.popup) {
         try {
           elementorProFrontend.modules.popup.closePopup({ id: popupId });
-          console.log('[CPL] Popup fechado via API do Elementor');
+          console.log('[CPL] Popup fechado via API Elementor');
         } catch (e) {
-          console.warn('[CPL] Erro ao fechar via API:', e);
+          console.warn('[CPL] Erro API Elementor:', e.message);
         }
       }
       
-      // Método 2: Fechar via botão de fechar (fallback)
-      var closeBtn = document.querySelector('.elementor-popup-modal .dialog-close-button') ||
-                     document.querySelector('.elementor-popup-modal button[aria-label*="Close"]') ||
-                     document.querySelector('[data-elementor-type="popup"] .dialog-close-button');
-      
-      if (closeBtn) {
-        closeBtn.click();
-        console.log('[CPL] Popup fechado via botão de fechar');
+      // Método 3: Ocultar manualmente o modal
+      var modal = document.querySelector('.elementor-popup-modal');
+      if (modal) {
+        modal.style.display = 'none';
+        console.log('[CPL] Modal ocultado manualmente');
       }
       
-      // Método 3: Remover elementos manualmente (último recurso)
-      setTimeout(function() {
-        var popupContainer = document.querySelector('.elementor-popup-modal');
-        var popupWrapper = document.querySelector('.elementor-popup-modal-wrapper');
-        
-        if (popupContainer && popupContainer.parentElement) {
-          popupContainer.parentElement.style.display = 'none';
-          console.log('[CPL] Popup container ocultado');
-        }
-        
-        if (popupWrapper) {
-          popupWrapper.style.display = 'none';
-          console.log('[CPL] Popup wrapper ocultado');
-        }
-        
-        // Remove classes que bloqueiam scroll
-        var popupClasses = Array.from(document.body.classList).filter(function(cls) {
-          return cls.indexOf('elementor-popup') !== -1;
-        });
-        popupClasses.forEach(function(cls) {
-          document.body.classList.remove(cls);
-          document.documentElement.classList.remove(cls);
-          console.log('[CPL] Classe removida:', cls);
-        });
-        
-      }, 100);
+      // Remove overlay wrapper se existir
+      var wrapper = document.querySelector('.elementor-popup-modal-wrapper');
+      if (wrapper) {
+        wrapper.style.display = 'none';
+      }
       
-    }, 50);
+    }, 200);
   }
 
   function lockGate() {
+    console.log('[CPL] 🔒 Bloqueando acesso...');
     document.documentElement.classList.add('cpl-gate-open');
     document.documentElement.classList.remove('cpl-gate-unlocked');
     openPopup();
@@ -102,20 +94,18 @@
     if (!days || days <= 0) days = 7;
     setCookie(COOKIE_NAME, '1', days);
 
-    // Remove classe que bloqueia o scroll
+    // Limpa classes de bloqueio
     document.documentElement.classList.remove('cpl-gate-open');
-    document.body.classList.remove('elementor-popup-modal');
-    document.body.classList.remove('elementor-modal');
+    document.body.style.overflow = 'auto';
+    document.documentElement.style.overflow = 'auto';
     
-    // Força reflow para atualizar CSS
-    void document.documentElement.offsetHeight;
+    // Aguarda e depois adiciona a classe de sucesso
+    setTimeout(function() {
+      document.documentElement.classList.add('cpl-gate-unlocked');
+      console.log('[CPL] Classe cpl-gate-unlocked adicionada');
+    }, 50);
     
-    // Adiciona classe de desbloqueio
-    document.documentElement.classList.add('cpl-gate-unlocked');
-    
-    // Força outro reflow
-    void document.documentElement.offsetHeight;
-    
+    // Fecha o popup
     closePopup();
     
     console.log('[CPL] ✅ Acesso liberado com sucesso!');
